@@ -467,29 +467,4 @@ export async function BlockBlueVerified(user: BlueBlockerUser, config: Config) {
 	} catch (e) {
 		console.error(logstr, e);
 	}
-
-	// external integrations always come last and have their own error handling
-	if (config.soupcanIntegration) {
-		// fire an event here to soupcan and check for transphobia
-		try {
-			const response = await api.runtime.sendMessage(
-				SoupcanExtensionId,
-				{ action: "check_twitter_user", screen_name: user.legacy.screen_name },
-			);
-			console.debug(logstr, `soupcan response for @${user.legacy.screen_name}:`, response);
-			if (response?.status === "transphobic") {
-				queueBlockUser(user, String(user.rest_id), ReasonTransphobia);
-				return;
-			}
-		} catch (_e) {
-			const e = _e as Error;
-			console.debug(logstr, `soupcan error for @${user.legacy.screen_name}:`, e);
-			if (e.message === "Could not establish connection. Receiving end does not exist.") {
-				api.storage.sync.set({ soupcanIntegration: false });
-				console.log(logstr, "looks like soupcan was uninstalled, disabling integration.");
-			} else {
-				console.error(logstr, "an unknown error occurred while messaging soupcan:", e);
-			}
-		}
-	}
 }
